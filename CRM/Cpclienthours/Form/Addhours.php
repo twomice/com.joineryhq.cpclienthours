@@ -33,7 +33,13 @@ class CRM_Cpclienthours_Form_Addhours extends CRM_Core_Form {
       'relationship_type_id' => $relationshipTypeId,
       'is_active' => 1,
       'contact_id_a' => $this->teamCid,
-      'api.Contact.getSingle' => ['id' => "\$value.contact_id_b", 'return' => ["sort_name", "is_deceased"]],
+      // Chain api call to get individual volunteers who meet certain criteria (not deceased, etc.)
+      'api.Contact.getSingle' => [
+        'id' => "\$value.contact_id_b",
+        'is_deleted' => 0,
+        'is_deceased' => 0,
+        'return' => ["sort_name"],
+      ],
       'options' => array(
         'limit' => 0,
       ),
@@ -62,8 +68,8 @@ class CRM_Cpclienthours_Form_Addhours extends CRM_Core_Form {
     }
 
     foreach ($relationships['values'] as $relationship) {
-      if ($relationship['api.Contact.getSingle']['is_deceased']) {
-        // Client is deceased; omit them.
+      if (empty($relationship['api.Contact.getSingle']['id'])) {
+        // Individual was not found (i.e., they did not meet the criteria of the chained api.Contact.getSingle api call); omit them.
         continue;
       }
       $clientCid = $relationship['api.Contact.getSingle']['id'];
